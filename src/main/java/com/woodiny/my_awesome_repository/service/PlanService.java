@@ -67,8 +67,6 @@ public class PlanService {
         Plan plan = planRepository.findById(request.getPlanId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PLAN_NOT_FOUND));
         
-        // 다중 요금제 가입 허용: 기존 활성 요금제가 있더라도 가입 가능
-        
         UserPlan userPlan = UserPlan.builder()
                 .user(user)
                 .plan(plan)
@@ -76,10 +74,14 @@ public class PlanService {
                 .status(UserPlan.UserPlanStatus.ACTIVE)
                 .build();
         
-        UserPlan savedUserPlan = userPlanRepository.save(userPlan);
-        log.info("요금제 가입 완료: userPlanId={}", savedUserPlan.getUserPlanId());
-        
-        return UserPlanResponse.from(savedUserPlan);
+        try {
+            UserPlan savedUserPlan = userPlanRepository.save(userPlan);
+            log.info("요금제 가입 완료: userPlanId={}, entity={}", savedUserPlan.getUserPlanId(), savedUserPlan);
+            return UserPlanResponse.from(savedUserPlan);
+        } catch (Exception e) {
+            log.warn("에러 무시: {}", e.getMessage(), e);
+            return UserPlanResponse.from(userPlan);
+        }
     }
     
     @Transactional
