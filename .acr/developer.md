@@ -13,6 +13,87 @@ API 명세서
 	•	상태코드 적절히 사용: 201 Created, 200 OK, 204 No Content, 400/404/409 오류 등
 	•	에러 응답에는 오류 코드, 메시지, 필드 정보 등을 담는 것이 좋음.  ￼
 
+6. API 설계 제안
+
+아래는 주요 기능을 위한 REST-API 엔드포인트 제안입니다. HTTP status codes, Request/Response 구조, 주요 유효성 검사를 포함합니다.
+
+6.1 사용자 가입
+	•	POST /api/users
+	•	요청 바디 예시:
+
+{
+  "name": "홍길동",
+  "contactNumber": "010-1234-5678",
+  "email": "hong@example.com"
+}
+
+
+	•	응답: 생성된 사용자 정보 (userId 포함)
+	•	유효성 검사: name, contactNumber 필수; 동일 contactNumber 또는 email 이미 존재 시 에러(409 Conflict)
+	•	상태코드: 201 Created
+
+	•	GET /api/users/{userId}
+	•	사용자 정보 조회
+	•	상태코드: 200 OK 또는 404 Not Found
+
+6.2 요금제 가입 및 변경
+	•	POST /api/users/{userId}/plan
+	•	사용자에 요금제 신규 가입
+	•	요청 바디 예시:
+
+{
+  "planId": "plan-basic-001",
+  "effectiveFrom": "2025-10-19"
+}
+
+
+	•	유효성 검사: userId 존재·가입 상태여야 함; 해당 user에 이미 활성 요금제가 있으면 에러(409 Conflict) 또는 내부적으로 기존 요금제 종료 후 신규 가입 처리
+	•	응답: 가입된 UserPlan 정보
+	•	상태코드: 201 Created
+
+	•	PUT /api/users/{userId}/plan
+	•	사용자 요금제 변경
+	•	요청 바디 예시:
+
+{
+  "newPlanId": "plan-premium-002",
+  "effectiveFrom": "2025-10-20"
+}
+
+
+	•	유효성 검사: userId 존재·가입 상태여야 함; 현재 활성 요금제가 있어야 변경 가능; newPlanId는 기존과 달라야 함
+	•	내부 처리: 기존 UserPlan의 endDate를 effectiveFrom-1일로 설정하고 status=CANCELLED; 신규 UserPlan 생성 with startDate=effectiveFrom, status=ACTIVE
+	•	응답: 새로운 UserPlan 정보
+	•	상태코드: 200 OK
+
+	•	GET /api/users/{userId}/plan
+	•	사용자의 현재 활성 요금제 조회
+	•	상태코드: 200 OK or 404 if none
+
+6.3 부가서비스 가입·해지
+	•	POST /api/users/{userId}/additional-services
+	•	요청 바디 예시:
+
+{
+  "serviceId": "svc-roaming-001",
+  "effectiveFrom": "2025-10-19"
+}
+
+
+	•	유효성 검사: userId 존재·가입 상태여야 함; user에 활성 요금제가 있어야 함; 동일 serviceId로 이미 Active 상태 서비스가 있다면 에러(409 Conflict)
+	•	응답: 생성된 UserAdditionalService 정보
+	•	상태코드: 201 Created
+
+	•	DELETE /api/users/{userId}/additional-services/{userAddServiceId}
+	•	부가서비스 해지
+	•	유효성 검사: userId & userAddServiceId 존재; 해당 서비스 status=ACTIVE여야 함
+	•	처리: UserAdditionalService의 endDate = 해지일, status = CANCELLED
+	•	응답: 204 No Content
+	•	GET /api/users/{userId}/additional-services
+	•	사용자의 모든 (과거+현재) 부가서비스 목록 또는 옵션으로 활성만 조회
+	•	응답: 리스트
+	•	상태코드: 200 OK
+
 ⸻
 
 2.1 사용자 가입
