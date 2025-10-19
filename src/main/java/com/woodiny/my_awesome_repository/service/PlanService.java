@@ -67,11 +67,7 @@ public class PlanService {
         Plan plan = planRepository.findById(request.getPlanId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PLAN_NOT_FOUND));
         
-        // 기존 활성 요금제 확인
-        Optional<UserPlan> existingActivePlan = userPlanRepository.findActiveByUserId(userId);
-        if (existingActivePlan.isPresent()) {
-            throw new BusinessException(ErrorCode.PLAN_ALREADY_SUBSCRIBED);
-        }
+        // 다중 요금제 가입 허용: 기존 활성 요금제가 있더라도 가입 가능
         
         UserPlan userPlan = UserPlan.builder()
                 .user(user)
